@@ -16,11 +16,12 @@ from typing import Dict, Any, List
 # Import all the core modules
 from FESM_GENESIS_ENGINE_v1_0 import CognitiveManifold, CognitiveSeed
 from thelight_FESM_v2_0 import LightHive, TheLight
-from qbit_tensor_mesh_response_v2_0 import QbitTensorMeshCognitiveFusion
+from victor_infinity_core import VictorInfinityPrime, ASIConfig, create_victor_small
 from fractal_fice_core import FractalFICECore
 from ake_substrate_simulator import Scene, SymbolicObject
-from tokenformer_manager import TokenformerManager
 from digital_agent import DigitalAgent
+import torch
+import random
 
 class VictorGodcore:
     """
@@ -33,10 +34,12 @@ class VictorGodcore:
         self.cognitive_manifold = CognitiveManifold()
         # Replace the seeds in the manifold with TheLight nodes
         self.cognitive_manifold.seeds = self.light_hive.nodes
-        self.qbit_tensor_mesh = QbitTensorMeshCognitiveFusion()
         self.fractal_fice = FractalFICECore()
         self.scene = Scene(mood="neutral")
-        self.tokenformer_manager = TokenformerManager()
+
+        # Initialize the VictorInfinityPrime model
+        self.asi_config = ASIConfig()
+        self.asi = create_victor_small()
 
         self.is_running = True
         self.thread = threading.Thread(target=self.run_simulation)
@@ -79,32 +82,22 @@ class VictorGodcore:
 
             # 4. Generate a response and compress knowledge
             if cycle % 5 == 0:
-                # Get the current state of the cognitive manifold
-                pantheon_report = self.cognitive_manifold.monitor.report_pantheon()
-                context = {
-                    "mood": self.agent.emotion_state,
-                    "intent": "REPORT",
-                    "tags": ["SIMULATION_STATE"],
-                    "pantheon": pantheon_report
-                }
+                # Create a dummy text prompt
+                prompt = torch.randint(0, self.asi_config.vocab_size, (1, 32))
 
-                # Use the tokenformer manager to process the text prompt
-                fused_output, _ = self.tokenformer_manager.forward(
-                    input_ids="What is the state of the simulation?",
-                    input_type='text'
-                )
+                # Get the coordinates of the objects in the scene
+                coords = torch.rand(1, len(self.scene.objects), 4) # B, P, Dims (x,y,z,t)
 
-                # Use the qbit tensor mesh to generate a response
-                response = self.qbit_tensor_mesh.generate_response(
-                    text_prompt="What is the state of the simulation?",
-                    context=context,
-                    audio_features=fused_output.mean(dim=1) # Use the fused output as audio features
-                )
-                print(f"Victor's Response: {response['response']}")
-                print(f"Flavor: {response['flavor_description']}")
+                # Generate a response from the ASI
+                logits, _ = self.asi(prompt, coords)
 
-                # Compress the response into a fractal seed
-                seed_hash, bloodline_id = self.fractal_fice.compress(response['response'])
+                # For simplicity, we'll just print the shape of the output
+                print(f"ASI generated logits with shape: {logits.shape}")
+
+                # In a real application, you would convert the logits to text
+                # and then compress the knowledge
+                response_text = "This is a simulated response from the ASI."
+                seed_hash, bloodline_id = self.fractal_fice.compress(response_text)
                 print(f"Knowledge compressed into seed: {seed_hash} (Bloodline: {bloodline_id})")
 
             time.sleep(1)
@@ -128,7 +121,7 @@ def main():
 
     try:
         while True:
-            command = input("Enter command ('status', 'agent', 'scene', 'exit'): ")
+            command = input("Enter command ('status', 'agent', 'scene', 'asi', 'save', 'load', 'exit'): ")
             if command == "exit":
                 break
             elif command == "status":
@@ -146,6 +139,15 @@ def main():
                 print("---------------------\n")
             elif command == "scene":
                 godcore.scene.render_scene()
+            elif command == "asi":
+                print("\n--- ASI Status ---")
+                print(f"Model Class: {godcore.asi.__class__.__name__}")
+                print(f"Model Config: {godcore.asi_config}")
+                print("-------------------\n")
+            elif command == "save":
+                godcore.asi.save_secure("./victor_infinity_core.pt")
+            elif command == "load":
+                godcore.asi.load_secure("./victor_infinity_core.pt")
             else:
                 print("Unknown command.")
     except KeyboardInterrupt:
